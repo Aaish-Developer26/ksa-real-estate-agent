@@ -1,5 +1,11 @@
 FROM python:3.10-slim
 
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    PIP_NO_CACHE_DIR=1
+
 WORKDIR /app
 
 # Install system dependencies for asyncpg and psycopg2
@@ -25,7 +31,9 @@ COPY data/ ./data/
 COPY evals/ ./evals/
 
 # Create non-root user for security
-RUN useradd --create-home --shell /bin/bash agent
+RUN useradd --create-home --shell /bin/bash agent \
+    && chown -R agent:agent /app
+
 USER agent
 
 EXPOSE 8000
