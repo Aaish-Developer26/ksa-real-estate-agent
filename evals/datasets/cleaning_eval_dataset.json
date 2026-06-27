@@ -1,0 +1,144 @@
+{
+  "dataset_name": "cleaning_agent_faithfulness_eval",
+  "agent": "cleaning",
+  "metric": "faithfulness",
+  "version": "1.0.0",
+  "description": "Tests that cleaning agent translations and normalizations are faithful to source listing data",
+  "records": [
+    {
+      "id": "clean_eval_001",
+      "question": "Normalize this raw listing to CleanedListing schema",
+      "contexts": [
+        "Raw listing data: listing_id=RYD-1001, raw_title='شقة فاخرة في العليا', raw_price='2,200,000 SAR', raw_area='220 م²', raw_location='العليا', raw_property_type='شقة', rera_number='1122334455', is_waqf=false"
+      ],
+      "answer": "title_en='Luxury apartment in Olaya', price_sar=2200000.0, area_sqm=220.0, district='Olaya', property_type='apartment', rera_number='1122334455'",
+      "ground_truth": "title_en='Luxury apartment in Olaya', price_sar=2200000.0, area_sqm=220.0, district='Olaya', property_type='apartment', rera_number='1122334455'"
+    },
+    {
+      "id": "clean_eval_002",
+      "question": "Normalize this raw listing to CleanedListing schema",
+      "contexts": [
+        "Raw listing data: listing_id=RYD-1002, raw_title='فيلا للبيع في الملقا', raw_price='4,500,000 SAR', raw_area='400 م²', raw_location='الملقا', raw_property_type='فيلا', rera_number='2233445566', is_waqf=false"
+      ],
+      "answer": "title_en='Villa for sale in Al Malqa', price_sar=4500000.0, area_sqm=400.0, district='Al_Malqa', property_type='villa', rera_number='2233445566'",
+      "ground_truth": "title_en='Villa for sale in Al Malqa', price_sar=4500000.0, area_sqm=400.0, district='Al_Malqa', property_type='villa', rera_number='2233445566'"
+    },
+    {
+      "id": "clean_eval_003",
+      "question": "Normalize this raw listing to CleanedListing schema",
+      "contexts": [
+        "Raw listing data: listing_id=RYD-1003, raw_title='أرض تجارية في النخيل', raw_price='3,000,000 SAR', raw_area='500 م²', raw_location='النخيل', raw_property_type='أرض', rera_number=null, is_waqf=false"
+      ],
+      "answer": "title_en='Commercial land in Al Nakheel', price_sar=3000000.0, area_sqm=500.0, district='Al_Nakheel', property_type='land', rera_number=null",
+      "ground_truth": "title_en='Commercial land in Al Nakheel', price_sar=3000000.0, area_sqm=500.0, district='Al_Nakheel', property_type='land', rera_number=null"
+    },
+    {
+      "id": "clean_eval_004",
+      "question": "Normalize this raw listing to CleanedListing schema",
+      "contexts": [
+        "Raw listing data: listing_id=RYD-1004, raw_title='Apartment in Al Rawdah', raw_price='١٥٠٠٠٠٠ ريال', raw_area='180 sqm', raw_location='Al Rawdah', raw_property_type='apartment', rera_number='3344556677', is_waqf=false"
+      ],
+      "answer": "price_sar=1500000.0, area_sqm=180.0, price_per_sqm=8333.33, district='Al_Rawdah'",
+      "ground_truth": "price_sar=1500000.0, area_sqm=180.0, price_per_sqm=8333.33, district='Al_Rawdah'"
+    },
+    {
+      "id": "clean_eval_005",
+      "question": "Normalize this raw listing to CleanedListing schema",
+      "contexts": [
+        "Raw listing data: listing_id=RYD-1005, raw_title='Villa in KAFD', raw_price='1.5M SAR', raw_area='300 sqm', raw_location='KAFD', raw_property_type='villa', rera_number='4455667788', is_waqf=false"
+      ],
+      "answer": "price_sar=1500000.0, area_sqm=300.0, price_per_sqm=5000.0, district='KAFD'",
+      "ground_truth": "price_sar=1500000.0, area_sqm=300.0, price_per_sqm=5000.0, district='KAFD'"
+    },
+    {
+      "id": "clean_eval_006",
+      "question": "Normalize this raw listing to CleanedListing schema",
+      "contexts": [
+        "Raw listing data: listing_id=RYD-1006, raw_title='Apartment in Al Naseem', raw_price='750K SAR', raw_area='150 sqm', raw_location='Al Naseem', raw_property_type='apartment', rera_number='5566778899', is_waqf=false"
+      ],
+      "answer": "price_sar=750000.0, area_sqm=150.0, price_per_sqm=5000.0, district='Al_Naseem'",
+      "ground_truth": "price_sar=750000.0, area_sqm=150.0, price_per_sqm=5000.0, district='Al_Naseem'"
+    },
+    {
+      "id": "clean_eval_007",
+      "question": "Normalize this raw listing to CleanedListing schema",
+      "contexts": [
+        "Raw listing data: listing_id=RYD-1007, raw_title='Villa in Olaya', raw_price='3,200,000 SAR', raw_area='2691 sqft', raw_location='Olaya', raw_property_type='villa', rera_number='6677889900', is_waqf=false"
+      ],
+      "answer": "area_sqm=250.0, price_per_sqm=12800.0, district='Olaya'",
+      "ground_truth": "area_sqm=250.0, price_per_sqm=12800.0, district='Olaya'"
+    },
+    {
+      "id": "clean_eval_008",
+      "question": "Normalize this raw listing to CleanedListing schema",
+      "contexts": [
+        "Raw listing data: listing_id=RYD-1008, raw_title='Apartment in Al Shifa', raw_price='900,000 SAR', raw_area='1614.5 sqft', raw_location='Al Shifa', raw_property_type='apartment', rera_number='7788990011', is_waqf=false"
+      ],
+      "answer": "area_sqm=150.0, price_per_sqm=6000.0, district='Al_Shifa'",
+      "ground_truth": "area_sqm=150.0, price_per_sqm=6000.0, district='Al_Shifa'"
+    },
+    {
+      "id": "clean_eval_009",
+      "question": "Normalize this raw listing to CleanedListing schema",
+      "contexts": [
+        "Raw listing data: listing_id=RYD-1009, raw_title='Compound in Al Wurud', raw_price='5,000,000 SAR', raw_area='3229 sq ft', raw_location='Al Wurud', raw_property_type='compound', rera_number='8899001122', is_waqf=false"
+      ],
+      "answer": "area_sqm=300.01, price_per_sqm=16666.11, district='Al_Wurud'",
+      "ground_truth": "area_sqm=300.01, price_per_sqm=16666.11, district='Al_Wurud'"
+    },
+    {
+      "id": "clean_eval_010",
+      "question": "Normalize this raw listing to CleanedListing schema",
+      "contexts": [
+        "Raw listing data: listing_id=RYD-1010, raw_title='Land in Al Naseem', raw_price='1,200,000 SAR', raw_area=null, raw_location='Al Naseem', raw_property_type='land', rera_number='9900112233', is_waqf=false"
+      ],
+      "answer": "price_sar=1200000.0, area_sqm=null, price_per_sqm=null, district='Al_Naseem'",
+      "ground_truth": "price_sar=1200000.0, area_sqm=null, price_per_sqm=null, district='Al_Naseem'"
+    },
+    {
+      "id": "clean_eval_011",
+      "question": "Normalize this raw listing to CleanedListing schema",
+      "contexts": [
+        "Raw listing data: listing_id=RYD-1011, raw_title='Apartment in KAFD', raw_price=null, raw_area='200 sqm', raw_location='KAFD', raw_property_type='apartment', rera_number='0011223344', is_waqf=false"
+      ],
+      "answer": "price_sar=null, area_sqm=200.0, price_per_sqm=null, district='KAFD'",
+      "ground_truth": "price_sar=null, area_sqm=200.0, price_per_sqm=null, district='KAFD'"
+    },
+    {
+      "id": "clean_eval_012",
+      "question": "Normalize this raw listing to CleanedListing schema",
+      "contexts": [
+        "Raw listing data: listing_id=RYD-1012, raw_title='Villa in Al Rawdah', raw_price=null, raw_area=null, raw_location='Al Rawdah', raw_property_type='villa', rera_number=null, is_waqf=false"
+      ],
+      "answer": "price_sar=null, area_sqm=null, price_per_sqm=null, district='Al_Rawdah', rera_number=null",
+      "ground_truth": "price_sar=null, area_sqm=null, price_per_sqm=null, district='Al_Rawdah', rera_number=null"
+    },
+    {
+      "id": "clean_eval_013",
+      "question": "Normalize this raw listing to CleanedListing schema",
+      "contexts": [
+        "Raw listing data: listing_id=RYD-1013, raw_title='Apartment', raw_price='1,000,000 SAR', raw_area='150 sqm', raw_location='عليا', raw_property_type='apartment', rera_number='1212121212', is_waqf=false"
+      ],
+      "answer": "district='Olaya'",
+      "ground_truth": "district='Olaya'"
+    },
+    {
+      "id": "clean_eval_014",
+      "question": "Normalize this raw listing to CleanedListing schema",
+      "contexts": [
+        "Raw listing data: listing_id=RYD-1014, raw_title='Villa', raw_price='2,000,000 SAR', raw_area='280 sqm', raw_location='al-malqa', raw_property_type='villa', rera_number='1313131313', is_waqf=false"
+      ],
+      "answer": "district='Al_Malqa'",
+      "ground_truth": "district='Al_Malqa'"
+    },
+    {
+      "id": "clean_eval_015",
+      "question": "Normalize this raw listing to CleanedListing schema",
+      "contexts": [
+        "Raw listing data: listing_id=RYD-1015, raw_title='Land', raw_price='1,800,000 SAR', raw_area='320 sqm', raw_location='king abdullah financial', raw_property_type='land', rera_number='1414141414', is_waqf=false"
+      ],
+      "answer": "district='KAFD'",
+      "ground_truth": "district='KAFD'"
+    }
+  ]
+}

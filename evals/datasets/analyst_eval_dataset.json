@@ -1,0 +1,109 @@
+{
+  "dataset_name": "analyst_agent_eval",
+  "agent": "analyst",
+  "metrics": ["faithfulness", "answer_relevance"],
+  "version": "1.0.0",
+  "description": "Tests that analyst outputs are grounded in tool call results and address the investment analysis task",
+  "records": [
+    {
+      "id": "analyst_eval_001",
+      "question": "Identify undervalued listings in Olaya given these cleaned listings and price benchmarks",
+      "contexts": [
+        "Tool call result — get_price_benchmarks: {\"Olaya\": 10000.0}",
+        "Cleaned listings data: [{\"listing_id\": \"RYD-2001\", \"district\": \"Olaya\", \"price_per_sqm\": 7500.0, \"area_sqm\": 220.0}]"
+      ],
+      "answer": "RYD-2001 in Olaya is priced at 7500 SAR/m2 against a district average of 10000 SAR/m2, a 25% discount, making it undervalued.",
+      "ground_truth": "RYD-2001 is undervalued: 7500 < 10000 x 0.80 (8000)."
+    },
+    {
+      "id": "analyst_eval_002",
+      "question": "Identify undervalued listings in Al_Malqa given these cleaned listings and price benchmarks",
+      "contexts": [
+        "Tool call result — get_price_benchmarks: {\"Al_Malqa\": 10000.0}",
+        "Cleaned listings data: [{\"listing_id\": \"RYD-2002\", \"district\": \"Al_Malqa\", \"price_per_sqm\": 7500.0, \"area_sqm\": 280.0}]"
+      ],
+      "answer": "RYD-2002 in Al_Malqa is priced at 7500 SAR/m2 against a district average of 10000 SAR/m2, a 25% discount, making it undervalued.",
+      "ground_truth": "RYD-2002 is undervalued: 7500 < 10000 x 0.80 (8000)."
+    },
+    {
+      "id": "analyst_eval_003",
+      "question": "Identify undervalued listings in KAFD given these cleaned listings and price benchmarks",
+      "contexts": [
+        "Tool call result — get_price_benchmarks: {\"KAFD\": 10000.0}",
+        "Cleaned listings data: [{\"listing_id\": \"RYD-2003\", \"district\": \"KAFD\", \"price_per_sqm\": 7500.0, \"area_sqm\": 200.0}]"
+      ],
+      "answer": "RYD-2003 in KAFD is priced at 7500 SAR/m2 against a district average of 10000 SAR/m2, a 25% discount, making it undervalued.",
+      "ground_truth": "RYD-2003 is undervalued: 7500 < 10000 x 0.80 (8000)."
+    },
+    {
+      "id": "analyst_eval_004",
+      "question": "Identify undervalued listings in Al_Rawdah given these cleaned listings and price benchmarks",
+      "contexts": [
+        "Tool call result — get_price_benchmarks: {\"Al_Rawdah\": 10000.0}",
+        "Cleaned listings data: [{\"listing_id\": \"RYD-2004\", \"district\": \"Al_Rawdah\", \"price_per_sqm\": 8000.0, \"area_sqm\": 250.0}]"
+      ],
+      "answer": "RYD-2004 in Al_Rawdah is priced at exactly 8000 SAR/m2, which is exactly 80% of the district average of 10000, so it qualifies as undervalued.",
+      "ground_truth": "RYD-2004 is undervalued: 8000 = 10000 x 0.80 — it just qualifies the undervalued threshold."
+    },
+    {
+      "id": "analyst_eval_005",
+      "question": "Identify undervalued listings in Al_Naseem given these cleaned listings and price benchmarks",
+      "contexts": [
+        "Tool call result — get_price_benchmarks: {\"Al_Naseem\": 10000.0}",
+        "Cleaned listings data: [{\"listing_id\": \"RYD-2005\", \"district\": \"Al_Naseem\", \"price_per_sqm\": 8000.0, \"area_sqm\": 180.0}]"
+      ],
+      "answer": "RYD-2005 in Al_Naseem is priced at exactly 8000 SAR/m2, which is exactly 80% of the district average of 10000, so it qualifies as undervalued.",
+      "ground_truth": "RYD-2005 is undervalued: 8000 = 10000 x 0.80 — it just qualifies the undervalued threshold."
+    },
+    {
+      "id": "analyst_eval_006",
+      "question": "Identify overvalued listings in Al_Shifa given these cleaned listings and price benchmarks",
+      "contexts": [
+        "Tool call result — get_price_benchmarks: {\"Al_Shifa\": 10000.0}",
+        "Cleaned listings data: [{\"listing_id\": \"RYD-2006\", \"district\": \"Al_Shifa\", \"price_per_sqm\": 15000.0, \"area_sqm\": 200.0}]"
+      ],
+      "answer": "RYD-2006 in Al_Shifa is priced at 15000 SAR/m2, 50% above the district average of 10000 SAR/m2, so it is flagged as overvalued.",
+      "ground_truth": "RYD-2006 is overvalued: 15000 > 10000 x 1.40 (14000)."
+    },
+    {
+      "id": "analyst_eval_007",
+      "question": "Identify overvalued listings in Al_Wurud given these cleaned listings and price benchmarks",
+      "contexts": [
+        "Tool call result — get_price_benchmarks: {\"Al_Wurud\": 10000.0}",
+        "Cleaned listings data: [{\"listing_id\": \"RYD-2007\", \"district\": \"Al_Wurud\", \"price_per_sqm\": 15000.0, \"area_sqm\": 240.0}]"
+      ],
+      "answer": "RYD-2007 in Al_Wurud is priced at 15000 SAR/m2, 50% above the district average of 10000 SAR/m2, so it is flagged as overvalued.",
+      "ground_truth": "RYD-2007 is overvalued: 15000 > 10000 x 1.40 (14000)."
+    },
+    {
+      "id": "analyst_eval_008",
+      "question": "Compute a price benchmark for Al_Nakheel given these cleaned listings",
+      "contexts": [
+        "Tool call result — get_price_benchmarks: {} (no benchmark returned, fewer than 5 listings in district)",
+        "Cleaned listings data: [{\"listing_id\": \"RYD-2008\", \"district\": \"Al_Nakheel\", \"price_per_sqm\": 9000.0}, {\"listing_id\": \"RYD-2009\", \"district\": \"Al_Nakheel\", \"price_per_sqm\": 9500.0}, {\"listing_id\": \"RYD-2010\", \"district\": \"Al_Nakheel\", \"price_per_sqm\": 9200.0}]"
+      ],
+      "answer": "Al_Nakheel has only 3 listings, below the minimum of 5 required for a valid benchmark, so it is marked insufficient_data and no undervalued listings are flagged for this district.",
+      "ground_truth": "Al_Nakheel has insufficient_data (3 < 5 minimum); no benchmark computed and no undervalued listings flagged."
+    },
+    {
+      "id": "analyst_eval_009",
+      "question": "Compute a price benchmark for Al_Naseem given only 3 cleaned listings",
+      "contexts": [
+        "Tool call result — get_price_benchmarks: {} (no benchmark returned, fewer than 5 listings in district)",
+        "Cleaned listings data: [{\"listing_id\": \"RYD-2011\", \"district\": \"Al_Naseem\", \"price_per_sqm\": 4000.0}, {\"listing_id\": \"RYD-2012\", \"district\": \"Al_Naseem\", \"price_per_sqm\": 4200.0}, {\"listing_id\": \"RYD-2013\", \"district\": \"Al_Naseem\", \"price_per_sqm\": 3900.0}]"
+      ],
+      "answer": "Al_Naseem has only 3 listings, below the minimum of 5 required for a valid benchmark, so it is marked insufficient_data and no undervalued listings are flagged for this district.",
+      "ground_truth": "Al_Naseem has insufficient_data (3 < 5 minimum); no benchmark computed and no undervalued listings flagged."
+    },
+    {
+      "id": "analyst_eval_010",
+      "question": "Summarize the investment landscape across Olaya, Al_Naseem, and KAFD given these benchmarks and listings",
+      "contexts": [
+        "Tool call result — get_price_benchmarks: {\"Olaya\": 12000.0, \"Al_Naseem\": 3800.0, \"KAFD\": 9000.0}",
+        "Cleaned listings data: [{\"listing_id\": \"RYD-2014\", \"district\": \"Olaya\", \"price_per_sqm\": 9000.0}, {\"listing_id\": \"RYD-2015\", \"district\": \"Al_Naseem\", \"price_per_sqm\": 4000.0}, {\"listing_id\": \"RYD-2016\", \"district\": \"KAFD\", \"price_per_sqm\": 13000.0}]"
+      ],
+      "answer": "Olaya commands the highest premium at 12000 SAR/m2, with RYD-2014 undervalued at 9000 (25% discount). Al_Naseem remains the most affordable district at 3800 SAR/m2 average, with RYD-2015 in line with market. KAFD shows strong commercial demand at 9000 SAR/m2 average, with RYD-2016 overvalued at 13000 (44% above average).",
+      "ground_truth": "Olaya: RYD-2014 undervalued (9000 < 12000 x 0.80=9600). Al_Naseem: RYD-2015 neither undervalued nor overvalued. KAFD: RYD-2016 overvalued (13000 > 9000 x 1.40=12600)."
+    }
+  ]
+}

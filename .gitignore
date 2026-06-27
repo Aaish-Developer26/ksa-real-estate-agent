@@ -1,0 +1,39 @@
+# Virtual environment
+.venv/
+
+# Environment variables — NEVER commit real keys
+.env
+
+# Poetry
+poetry.lock
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# VS Code
+.vscode/
+
+# Data — mock data committed, real data never
+data/real/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code context — never commit
+.claude/
+
+# Test scripts created during development
+test_*.py
+check_result.py
+
+intructions.txt

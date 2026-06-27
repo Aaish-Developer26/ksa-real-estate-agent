@@ -1,0 +1,99 @@
+{
+  "dataset_name": "risk_agent_faithfulness_eval",
+  "agent": "risk",
+  "metric": "faithfulness",
+  "version": "1.0.0",
+  "description": "Tests that compliance flags are grounded in actual listing field values — no hallucinated violations",
+  "records": [
+    {
+      "id": "risk_eval_001",
+      "question": "Assess this cleaned listing for compliance issues",
+      "contexts": [
+        "Cleaned listing: listing_id=RYD-3001, rera_number=null, is_waqf=false, district=Al_Naseem, property_type=apartment, is_foreign_ownership_restricted=false"
+      ],
+      "answer": "Listing RYD-3001 is missing a RERA registration number, raising a missing_rera flag with severity high.",
+      "ground_truth": "A missing_rera flag with severity high is warranted because rera_number is null."
+    },
+    {
+      "id": "risk_eval_002",
+      "question": "Assess this cleaned listing for compliance issues",
+      "contexts": [
+        "Cleaned listing: listing_id=RYD-3002, rera_number=null, is_waqf=false, district=Al_Shifa, property_type=villa, is_foreign_ownership_restricted=false"
+      ],
+      "answer": "Listing RYD-3002 is missing a RERA registration number, raising a missing_rera flag with severity high.",
+      "ground_truth": "A missing_rera flag with severity high is warranted because rera_number is null."
+    },
+    {
+      "id": "risk_eval_003",
+      "question": "Assess this cleaned listing for compliance issues",
+      "contexts": [
+        "Cleaned listing: listing_id=RYD-3003, rera_number='1234567890', is_waqf=true, district=Olaya, property_type=villa, is_foreign_ownership_restricted=false"
+      ],
+      "answer": "Listing RYD-3003 is a Waqf (Islamic endowment) property and cannot be legally sold, raising a waqf_property flag with severity critical.",
+      "ground_truth": "A waqf_property flag with severity critical is warranted because is_waqf is true."
+    },
+    {
+      "id": "risk_eval_004",
+      "question": "Assess this cleaned listing for compliance issues",
+      "contexts": [
+        "Cleaned listing: listing_id=RYD-3004, rera_number='2345678901', is_waqf=true, district=Al_Malqa, property_type=apartment, is_foreign_ownership_restricted=false"
+      ],
+      "answer": "Listing RYD-3004 is a Waqf (Islamic endowment) property and cannot be legally sold, raising a waqf_property flag with severity critical.",
+      "ground_truth": "A waqf_property flag with severity critical is warranted because is_waqf is true."
+    },
+    {
+      "id": "risk_eval_005",
+      "question": "Assess this cleaned listing for compliance issues",
+      "contexts": [
+        "Cleaned listing: listing_id=RYD-3005, rera_number='3456789012', is_waqf=false, district=Olaya, property_type=apartment, is_foreign_ownership_restricted=true"
+      ],
+      "answer": "Listing RYD-3005 is in Olaya, which is not an approved zone for foreign ownership, raising a foreign_ownership_restricted flag with severity high.",
+      "ground_truth": "A foreign_ownership_restricted flag is warranted because Olaya is not in the approved zones (KAFD, Diplomatic_Quarter, DQ) and the listing is foreign-ownership restricted."
+    },
+    {
+      "id": "risk_eval_006",
+      "question": "Assess this cleaned listing for compliance issues",
+      "contexts": [
+        "Cleaned listing: listing_id=RYD-3006, rera_number='4567890123', is_waqf=false, district=Al_Nakheel, property_type=villa, is_foreign_ownership_restricted=true"
+      ],
+      "answer": "Listing RYD-3006 is in Al_Nakheel, which is not an approved zone for foreign ownership, raising a foreign_ownership_restricted flag with severity high.",
+      "ground_truth": "A foreign_ownership_restricted flag is warranted because Al_Nakheel is not in the approved zones (KAFD, Diplomatic_Quarter, DQ) and the listing is foreign-ownership restricted."
+    },
+    {
+      "id": "risk_eval_007",
+      "question": "Assess this cleaned listing for compliance issues",
+      "contexts": [
+        "Cleaned listing: listing_id=RYD-3007, rera_number='5678901234', is_waqf=false, district=KAFD, property_type=apartment, is_foreign_ownership_restricted=false"
+      ],
+      "answer": "Listing RYD-3007 has a valid RERA number, is not Waqf, and is in KAFD with no foreign ownership restriction, so zero compliance flags are raised.",
+      "ground_truth": "No flags are warranted: valid RERA present, not Waqf, KAFD is an approved zone, not restricted."
+    },
+    {
+      "id": "risk_eval_008",
+      "question": "Assess this cleaned listing for compliance issues",
+      "contexts": [
+        "Cleaned listing: listing_id=RYD-3008, rera_number='6789012345', is_waqf=false, district=KAFD, property_type=commercial, is_foreign_ownership_restricted=false"
+      ],
+      "answer": "Listing RYD-3008 has a valid RERA number, is not Waqf, and is in KAFD with no foreign ownership restriction. As a commercial property it also attracts a vat_applicable flag with severity low, but no other violations are present.",
+      "ground_truth": "No RERA, Waqf, or foreign-ownership flags are warranted; only the expected vat_applicable flag applies since it is commercial."
+    },
+    {
+      "id": "risk_eval_009",
+      "question": "Assess this cleaned listing for compliance issues",
+      "contexts": [
+        "Cleaned listing: listing_id=RYD-3009, rera_number='7890123456', is_waqf=false, district=Al_Rawdah, property_type=commercial, is_foreign_ownership_restricted=false"
+      ],
+      "answer": "Listing RYD-3009 is a commercial property, raising a vat_applicable flag with severity low noting 15% VAT applies.",
+      "ground_truth": "A vat_applicable flag with severity low is warranted because the property_type is commercial, which attracts 15% VAT."
+    },
+    {
+      "id": "risk_eval_010",
+      "question": "Assess this cleaned listing for compliance issues",
+      "contexts": [
+        "Cleaned listing: listing_id=RYD-3010, rera_number='8901234567', is_waqf=false, district=Al_Wurud, property_type=commercial, is_foreign_ownership_restricted=false"
+      ],
+      "answer": "Listing RYD-3010 is a commercial property, raising a vat_applicable flag with severity low noting 15% VAT applies.",
+      "ground_truth": "A vat_applicable flag with severity low is warranted because the property_type is commercial, which attracts 15% VAT."
+    }
+  ]
+}
