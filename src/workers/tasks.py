@@ -72,80 +72,120 @@ async def _run_pipeline_async(
                 )
 
         final_state_snapshot = graph.get_state(config)
-        final_values = final_state_snapshot.values
+        raw_values = final_state_snapshot.values
+
+        # Handle both Pydantic BaseModel and dict state
+        # AgentState is a Pydantic BaseModel — use attribute
+        # access, not .get()
+        if hasattr(raw_values, 'model_dump'):
+            # Pydantic BaseModel — convert to dict first
+            final_values = raw_values.model_dump()
+        elif isinstance(raw_values, dict):
+            final_values = raw_values
+        else:
+            # Fallback — try both access patterns
+            final_values = {}
+            for field in [
+                'investment_report', 'current_phase',
+                'cleaned_listings', 'compliance_flags',
+                'raw_listings', 'analysis_summary',
+                'district_benchmarks', 'undervalued_listing_ids',
+                'errors',
+            ]:
+                try:
+                    final_values[field] = getattr(raw_values, field, None)
+                except Exception:
+                    pass
+
+        logger.info(
+            "Final state extracted",
+            extra={
+                "run_id": run_id,
+                "phase": final_values.get("current_phase", "unknown"),
+                "cleaned_count": len(
+                    final_values.get("cleaned_listings", [])
+                ),
+                "has_report": bool(
+                    final_values.get("investment_report")
+                ),
+            }
+        )
 
         # Persist cleaned_listings to database
-        cleaned_listings = final_values.get("cleaned_listings", [])
-        if cleaned_listings:
-            cleaned_dicts = []
-            for listing in cleaned_listings:
-                if hasattr(listing, "model_dump"):
-                    cleaned_dicts.append(listing.model_dump())
-                elif isinstance(listing, dict):
-                    cleaned_dicts.append(listing)
+        cleaned_listings_raw = final_values.get("cleaned_listings", [])
+        cleaned_listings = []
+        for item in cleaned_listings_raw:
+            if hasattr(item, 'model_dump'):
+                cleaned_listings.append(item.model_dump())
+            elif isinstance(item, dict):
+                cleaned_listings.append(item)
 
-            if cleaned_dicts:
-                inserted = await repo.insert_cleaned_listings(
-                    cleaned_dicts, run_id
-                )
-                logger.info(
-                    "Cleaned listings persisted",
-                    extra={
-                        "run_id": run_id,
-                        "inserted": inserted,
-                        "total": len(cleaned_dicts),
-                    }
-                )
+        if cleaned_listings:
+            inserted = await repo.insert_cleaned_listings(
+                cleaned_listings, run_id
+            )
+            logger.info(
+                "Cleaned listings persisted",
+                extra={"run_id": run_id, "inserted": inserted}
+            )
 
         # Persist compliance_flags to database
-        compliance_flags = final_values.get("compliance_flags", [])
-        if compliance_flags:
-            flag_dicts = []
-            for flag in compliance_flags:
-                if hasattr(flag, "model_dump"):
-                    flag_dicts.append(flag.model_dump())
-                elif isinstance(flag, dict):
-                    flag_dicts.append(flag)
+        compliance_flags_raw = final_values.get("compliance_flags", [])
+        flag_dicts = []
+        for flag in compliance_flags_raw:
+            if hasattr(flag, 'model_dump'):
+                flag_dicts.append(flag.model_dump())
+            elif isinstance(flag, dict):
+                flag_dicts.append(flag)
 
-            if flag_dicts:
-                inserted_flags = await repo.insert_compliance_flags(
-                    flag_dicts, run_id
-                )
-                logger.info(
-                    "Compliance flags persisted",
-                    extra={
-                        "run_id": run_id,
-                        "inserted": inserted_flags,
-                        "total": len(flag_dicts),
-                    }
-                )
+        if flag_dicts:
+            inserted_flags = await repo.insert_compliance_flags(
+                flag_dicts, run_id
+            )
+            logger.info(
+                "Compliance flags persisted",
+                extra={"run_id": run_id, "inserted": inserted_flags}
+            )
 
-        # Also insert price history for time-series tracking
-        for listing in cleaned_listings:
+        # Insert price history
+        for item in cleaned_listings_raw:
             try:
-                if hasattr(listing, "price_per_sqm") and listing.price_per_sqm:
+                if hasattr(item, 'price_per_sqm'):
+                    price_sqm = item.price_per_sqm
+                    lid = item.listing_id
+                    dist = item.district or ""
+                    psar = item.price_sar or 0.0
+                else:
+                    price_sqm = item.get('price_per_sqm')
+                    lid = item.get('listing_id', '')
+                    dist = item.get('district') or ""
+                    psar = item.get('price_sar') or 0.0
+
+                if price_sqm:
                     from datetime import datetime, timezone
                     await repo.insert_price_history(
-                        listing_id=listing.listing_id,
-                        district=listing.district or "",
-                        price_sar=listing.price_sar or 0.0,
-                        price_per_sqm=listing.price_per_sqm,
-                        recorded_at=datetime.now(timezone.utc).isoformat(),
+                        listing_id=lid,
+                        district=dist,
+                        price_sar=float(psar),
+                        price_per_sqm=float(price_sqm),
+                        recorded_at=datetime.now(
+                            timezone.utc
+                        ).isoformat(),
                     )
-            except Exception as e:
+            except Exception as ph_err:
                 logger.warning(
-                    "Price history insert failed for listing",
-                    extra={
-                        "listing_id": getattr(listing, "listing_id", "?"),
-                        "error": str(e),
-                    }
+                    "Price history insert failed",
+                    extra={"error": str(ph_err)}
                 )
 
+        # Update analysis run as completed
         await repo.update_analysis_run(
             run_id=run_id,
             status="completed",
-            summary=str(final_values.get("investment_report", ""))[:500],
-            total_listings=len(final_values.get("cleaned_listings", [])),
+            summary=str(
+                final_values.get("investment_report", "")
+            )[:500],
+            total_listings=len(cleaned_listings),
         )
 
         logger.info("Pipeline completed successfully", extra={"run_id": run_id})

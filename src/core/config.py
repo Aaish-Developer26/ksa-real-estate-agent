@@ -34,9 +34,9 @@ class Settings(BaseSettings):
     """
 
     # LLM Configuration
-    groq_api_key: SecretStr
-    litellm_model: str = "groq/llama-3.1-70b-versatile"
-    google_api_key: SecretStr | None = None
+    groq_api_key: SecretStr | None = None
+    litellm_model: str = "gemini/gemini-2.5-flash"
+    google_api_key: SecretStr 
 
     # Observability
     langsmith_api_key: SecretStr
