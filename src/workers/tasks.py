@@ -74,6 +74,73 @@ async def _run_pipeline_async(
         final_state_snapshot = graph.get_state(config)
         final_values = final_state_snapshot.values
 
+        # Persist cleaned_listings to database
+        cleaned_listings = final_values.get("cleaned_listings", [])
+        if cleaned_listings:
+            cleaned_dicts = []
+            for listing in cleaned_listings:
+                if hasattr(listing, "model_dump"):
+                    cleaned_dicts.append(listing.model_dump())
+                elif isinstance(listing, dict):
+                    cleaned_dicts.append(listing)
+
+            if cleaned_dicts:
+                inserted = await repo.insert_cleaned_listings(
+                    cleaned_dicts, run_id
+                )
+                logger.info(
+                    "Cleaned listings persisted",
+                    extra={
+                        "run_id": run_id,
+                        "inserted": inserted,
+                        "total": len(cleaned_dicts),
+                    }
+                )
+
+        # Persist compliance_flags to database
+        compliance_flags = final_values.get("compliance_flags", [])
+        if compliance_flags:
+            flag_dicts = []
+            for flag in compliance_flags:
+                if hasattr(flag, "model_dump"):
+                    flag_dicts.append(flag.model_dump())
+                elif isinstance(flag, dict):
+                    flag_dicts.append(flag)
+
+            if flag_dicts:
+                inserted_flags = await repo.insert_compliance_flags(
+                    flag_dicts, run_id
+                )
+                logger.info(
+                    "Compliance flags persisted",
+                    extra={
+                        "run_id": run_id,
+                        "inserted": inserted_flags,
+                        "total": len(flag_dicts),
+                    }
+                )
+
+        # Also insert price history for time-series tracking
+        for listing in cleaned_listings:
+            try:
+                if hasattr(listing, "price_per_sqm") and listing.price_per_sqm:
+                    from datetime import datetime, timezone
+                    await repo.insert_price_history(
+                        listing_id=listing.listing_id,
+                        district=listing.district or "",
+                        price_sar=listing.price_sar or 0.0,
+                        price_per_sqm=listing.price_per_sqm,
+                        recorded_at=datetime.now(timezone.utc).isoformat(),
+                    )
+            except Exception as e:
+                logger.warning(
+                    "Price history insert failed for listing",
+                    extra={
+                        "listing_id": getattr(listing, "listing_id", "?"),
+                        "error": str(e),
+                    }
+                )
+
         await repo.update_analysis_run(
             run_id=run_id,
             status="completed",

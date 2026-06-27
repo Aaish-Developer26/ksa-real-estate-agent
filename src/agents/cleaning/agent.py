@@ -63,6 +63,26 @@ def _deterministic_pass(raw_listings: list[RawListing]) -> list[dict[str, Any]]:
         listing_dict = raw_listing.model_dump()
         price_sar = parse_price_sar(listing_dict.get("raw_price"))
         area_sqm = parse_area_sqm(listing_dict.get("raw_area"))
+
+        # Level 1: Try regex extraction from rera_number field
+        raw_rera = listing_dict.get("rera_number")
+        rera = extract_rera_number(raw_rera) if raw_rera else None
+
+        # Level 2: If not found, try extracting from description
+        if not rera:
+            rera = extract_rera_number(
+                listing_dict.get("raw_description") or ""
+            )
+
+        # Level 3: If raw_rera exists and looks like a number,
+        # use it directly even if regex didn't match perfectly
+        if not rera and raw_rera:
+            cleaned_raw = str(raw_rera).strip()
+            if cleaned_raw and cleaned_raw.lower() not in (
+                "none", "null", "", "n/a"
+            ):
+                rera = cleaned_raw
+
         results.append(
             {
                 "listing_id": listing_dict.get("listing_id") or f"unknown-{idx}",
@@ -75,10 +95,7 @@ def _deterministic_pass(raw_listings: list[RawListing]) -> list[dict[str, Any]]:
                 "property_type": normalize_property_type(
                     listing_dict.get("raw_property_type")
                 ),
-                "rera_number": extract_rera_number(
-                    listing_dict.get("rera_number")
-                    or listing_dict.get("raw_description")
-                ),
+                "rera_number": rera,
                 "is_waqf": listing_dict.get("is_waqf", False),
             }
         )
