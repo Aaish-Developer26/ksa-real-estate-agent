@@ -62,19 +62,19 @@ class CleanedListing(BaseModel):
     """
 
     listing_id: str
-    source_url: str
-    title_en: str
-    price_sar: float
-    area_sqm: float
-    price_per_sqm: float
+    source_url: str = ""
+    title_en: str = ""
+    price_sar: float = 0.0
+    area_sqm: float = 0.0
+    price_per_sqm: float = 0.0
     district: str
     property_type: Literal[
         "villa", "apartment", "compound", "land", "commercial", "other"
     ]
-    rera_number: str | None
-    is_waqf: bool
-    is_foreign_ownership_restricted: bool
-    normalized_at: str
+    rera_number: str | None = None
+    is_waqf: bool = False
+    is_foreign_ownership_restricted: bool = False
+    normalized_at: str = ""
 
 
 class ComplianceFlag(BaseModel):

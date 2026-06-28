@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 SOURCING_SYSTEM_PROMPT: str = """You are a specialized real estate data sourcing agent for the
@@ -39,14 +40,33 @@ Riyadh districts: {', '.join(districts)}
 For each district:
 1. Call search_real_estate with query:
    "<district> real estate listings for sale Riyadh"
-2. Extract up to {max_listings_per_district} listings per district
-3. For each listing extract: title, price, area, location,
-   property type, description, URL, RERA number if visible
-4. Set is_waqf to true only if listing explicitly states 'وقف'
-   or 'Waqf' in title or description
-5. Return all findings as structured listing objects
+2. Extract up to {max_listings_per_district} listings
+3. For each listing extract all available fields
 
-Output raw data only. Do not normalize, translate, or clean."""
+CRITICAL: Your FINAL response after all tool calls must be
+ONLY a valid JSON array. No prose. No explanation.
+No markdown. Just the raw JSON array starting with [
+
+Required JSON format:
+[
+  {{
+    "listing_id": "unique-id-from-url-or-generate",
+    "source_url": "full URL from search result",
+    "raw_title": "listing title as found",
+    "raw_price": "price as found in text",
+    "raw_area": "area as found in text",
+    "raw_location": "location/district as found",
+    "raw_property_type": "villa/apartment/land/etc",
+    "raw_description": "description snippet",
+    "rera_number": "10-digit number if found else null",
+    "is_waqf": false,
+    "scraped_at": "{datetime.now(timezone.utc).isoformat()}"
+  }}
+]
+
+If no listings found for a district, skip it.
+Return [] if absolutely no listings found anywhere.
+REMEMBER: Return ONLY the JSON array, nothing else."""
 
     return [
         {"role": "system", "content": SOURCING_SYSTEM_PROMPT},

@@ -111,6 +111,34 @@ async def _run_pipeline_async(
             }
         )
 
+        # Persist raw_listings to database
+        raw_listings_raw = final_values.get("raw_listings", [])
+        raw_listing_dicts = []
+        for item in raw_listings_raw:
+            if hasattr(item, "model_dump"):
+                raw_listing_dicts.append(item.model_dump())
+            elif isinstance(item, dict):
+                raw_listing_dicts.append(item)
+
+        if raw_listing_dicts:
+            try:
+                inserted_raw = await repo.insert_raw_listings(
+                    raw_listing_dicts, run_id
+                )
+                logger.info(
+                    "Raw listings persisted",
+                    extra={
+                        "run_id": run_id,
+                        "inserted": inserted_raw,
+                        "total": len(raw_listing_dicts),
+                    },
+                )
+            except Exception as raw_err:
+                logger.warning(
+                    "Raw listings persistence failed — continuing",
+                    extra={"error": str(raw_err)},
+                )
+
         # Persist cleaned_listings to database
         cleaned_listings_raw = final_values.get("cleaned_listings", [])
         cleaned_listings = []

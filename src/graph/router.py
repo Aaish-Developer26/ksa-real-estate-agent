@@ -35,16 +35,26 @@ def route_after_cleaning(state: AgentState) -> str:
         state: Current pipeline state.
 
     Returns:
-        "analyst_agent" if cleaned_listings exist.
-        "error_node" if all listings were dropped during cleaning.
+        "analyst_agent" always, unless cleaning itself failed —
+        partial or empty cleaned_listings (e.g. sparse live data
+        with no price/area) still produce a graceful report.
+        "error_node" only if cleaning explicitly failed.
     """
     if state.current_phase == "cleaning_failed":
         logger.error("Routing to error: cleaning failed")
         return "error_node"
+
     if not state.cleaned_listings:
-        logger.warning("Routing to error: no listings survived cleaning")
-        return "error_node"
-    logger.info(f"Routing to analysis: {len(state.cleaned_listings)} cleaned listings")
+        logger.warning(
+            "No cleaned listings — likely sparse live data. "
+            "Routing to analyst with empty state for graceful report."
+        )
+        return "analyst_agent"
+
+    logger.info(
+        "Routing to analyst",
+        extra={"cleaned_count": len(state.cleaned_listings)}
+    )
     return "analyst_agent"
 
 

@@ -33,33 +33,114 @@ DEFAULT_DISTRICTS: list[str] = [
 _MOCK_DATA_PATH = Path("data/mock/riyadh_listings.json")
 
 
-async def _execute_search_tool(tool_name: str, tool_args: dict[str, Any]) -> str:
-    """Simulate a search MCP tool call using the local mock dataset.
+async def _execute_search_tool(
+    tool_name: str,
+    tool_args: dict[str, Any],
+) -> str:
+    """Execute a search tool call.
 
-    Stands in for a live ``search_app`` (registered as ``%s``) stdio
-    connection during development, since the graph does not yet spawn a
-    live MCP subprocess.
+    In development mode: returns filtered mock data.
+    In production mode: calls real Brave Search API.
 
     Args:
-        tool_name: The name of the tool being invoked.
-        tool_args: The tool's input arguments.
+        tool_name: Name of the tool to execute.
+        tool_args: Tool arguments from LLM tool call.
 
     Returns:
-        A JSON string result, mirroring what the live MCP tool would return.
+        JSON string of search results.
     """
-    logger.debug(
-        "Executing search tool", extra={"tool": tool_name, "tool_args": tool_args}
-    )
-    if tool_name == "search_real_estate":
-        return await _mock_search_real_estate(tool_args.get("query", ""))
-    if tool_name == "search_market_news":
-        return json.dumps(
-            [{"title": "Riyadh real estate market update", "url": "", "snippet": ""}]
-        )
-    return json.dumps({"error": f"Unknown tool: {tool_name}"})
+    import os
+    import json as _json
 
+    app_env = os.getenv("APP_ENV", "development")
 
-_execute_search_tool.__doc__ = (_execute_search_tool.__doc__ or "") % search_app.name
+    if app_env != "development":
+        # PRODUCTION: Call real Brave Search API
+        try:
+            from src.mcp_servers.search_server.server import (
+                _brave_search,
+            )
+            if tool_name == "search_real_estate":
+                query = tool_args.get("query", "")
+                count = tool_args.get("count", 10)
+                logger.debug(
+                    "Production search tool call",
+                    extra={
+                        "tool": tool_name,
+                        "query": query,
+                        "count": count,
+                    },
+                )
+                results = await _brave_search(query, count)
+                return _json.dumps(results)
+
+            elif tool_name == "search_market_news":
+                query = tool_args.get("query", "")
+                count = tool_args.get("count", 5)
+                results = await _brave_search(query, count)
+                return _json.dumps(results)
+
+            else:
+                logger.warning(
+                    "Unknown tool in production mode",
+                    extra={"tool_name": tool_name},
+                )
+                return _json.dumps([])
+
+        except Exception as e:
+            logger.error(
+                "Production search tool failed",
+                extra={
+                    "tool": tool_name,
+                    "error": str(e),
+                },
+            )
+            return _json.dumps([])
+
+    else:
+        # DEVELOPMENT: Use mock data fast-path
+        try:
+            from pathlib import Path
+            mock_path = (
+                Path(__file__).parent.parent.parent.parent
+                / "data"
+                / "mock"
+                / "riyadh_listings.json"
+            )
+            with open(mock_path, encoding="utf-8") as f:
+                import json as _json2
+                mock_data = _json2.load(f)
+
+            all_listings = mock_data.get("listings", [])
+            query = tool_args.get("query", "").lower()
+
+            # Filter by district if query contains district name
+            filtered = [
+                lst for lst in all_listings
+                if any(
+                    term in query
+                    for term in [
+                        lst.get("raw_location", "").lower(),
+                        lst.get("listing_id", "").lower(),
+                    ]
+                )
+            ] or all_listings[:10]
+
+            logger.debug(
+                "Mock search tool call",
+                extra={
+                    "tool": tool_name,
+                    "results": len(filtered),
+                },
+            )
+            return _json.dumps(filtered[:10])
+
+        except Exception as e:
+            logger.error(
+                "Mock search tool failed",
+                extra={"error": str(e)},
+            )
+            return _json.dumps([])
 
 
 async def _mock_search_real_estate(query: str) -> str:
@@ -117,14 +198,13 @@ def _parse_raw_listings(content: str) -> list[RawListing]:
         acceptable for sourcing.
     """
     raw_listings: list[RawListing] = []
-    try:
-        items = json.loads(_strip_code_fences(content))
-    except json.JSONDecodeError as exc:
-        logger.warning("Failed to parse sourcing response as JSON", extra={"error": str(exc)})
-        return raw_listings
+    items = _extract_json_from_response(content)
 
-    if not isinstance(items, list):
-        logger.warning("Sourcing response JSON was not a list")
+    if not items:
+        logger.warning(
+            "Sourcing: no listings extracted from LLM response",
+            extra={"content_preview": content[:300]},
+        )
         return raw_listings
 
     for item in items:
@@ -177,29 +257,191 @@ async def _run_tool_call_loop(
     Returns:
         The final response content string after any tool-call round trip.
     """
-    response = await litellm.acompletion(
-        model=settings_model,
-        messages=messages,
-        tools=SOURCING_TOOLS,
-        tool_choice="auto",
-        temperature=0.1,
+    from litellm.exceptions import (
+        RateLimitError,
+        ServiceUnavailableError,
     )
-    message = response.choices[0].message
-    if not getattr(message, "tool_calls", None):
-        return message.content or ""
 
-    messages.append(message.model_dump())
-    for tool_call in message.tool_calls:
-        tool_args = json.loads(tool_call.function.arguments)
-        tool_result = await _execute_search_tool(tool_call.function.name, tool_args)
-        messages.append(
-            {"role": "tool", "tool_call_id": tool_call.id, "content": tool_result}
+    MAX_RETRIES = 4
+    try:
+        response = None
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = await litellm.acompletion(
+                    model=settings_model,
+                    messages=messages,
+                    tools=SOURCING_TOOLS,
+                    tool_choice="auto",
+                    temperature=0.1,
+                )
+                break  # success — exit retry loop
+            except (RateLimitError, ServiceUnavailableError) as e:
+                if attempt < MAX_RETRIES - 1:
+                    wait = 20 * (attempt + 1)  # 20s, 40s, 60s
+                    logger.warning(
+                        "Sourcing LLM unavailable — retrying",
+                        extra={
+                            "attempt": attempt + 1,
+                            "max_retries": MAX_RETRIES,
+                            "wait_seconds": wait,
+                            "error": str(e)[:100],
+                        }
+                    )
+                    import asyncio as _asyncio
+                    await _asyncio.sleep(wait)
+                else:
+                    logger.error(
+                        "Sourcing LLM failed after all retries",
+                        extra={"attempts": MAX_RETRIES, "error": str(e)[:200]}
+                    )
+                    raise
+
+        if response is None:
+            logger.error("Sourcing: no response after retries")
+            return ""
+
+        if not response.choices:
+            logger.warning(
+                "LLM returned empty choices list",
+                extra={"model": settings_model},
+            )
+            return ""
+
+        message = response.choices[0].message
+        tool_calls = getattr(message, "tool_calls", None) or []
+        content = getattr(message, "content", None) or ""
+
+        finish_reason = getattr(response.choices[0], "finish_reason", "") or ""
+        # Gemini uses 'STOP', Groq uses 'stop'
+        is_done = finish_reason.upper() in ("STOP", "END", "LENGTH")
+        has_tool_calls = bool(tool_calls)
+
+        if not has_tool_calls and not content:
+            logger.warning(
+                "LLM returned no tool calls and no content",
+                extra={
+                    "finish_reason": finish_reason,
+                    "model": settings_model,
+                },
+            )
+            return ""
+
+        if not has_tool_calls:
+            return content
+
+        messages.append(message.model_dump())
+        for tool_call in tool_calls:
+            tool_name = tool_call.function.name
+            try:
+                tool_args = json.loads(tool_call.function.arguments)
+            except (json.JSONDecodeError, ValueError):
+                tool_args = {}
+
+            tool_result = await _execute_search_tool(tool_name, tool_args)
+
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": tool_result,
+                }
+            )
+
+        final_response = None
+        for attempt in range(MAX_RETRIES):
+            try:
+                final_response = await litellm.acompletion(
+                    model=settings_model, messages=messages, temperature=0.1
+                )
+                break
+            except (RateLimitError, ServiceUnavailableError) as e:
+                if attempt < MAX_RETRIES - 1:
+                    wait = 20 * (attempt + 1)
+                    logger.warning(
+                        "Sourcing final LLM call retrying",
+                        extra={"attempt": attempt + 1, "wait": wait}
+                    )
+                    import asyncio as _asyncio
+                    await _asyncio.sleep(wait)
+                else:
+                    raise
+
+        if not final_response.choices:
+            logger.warning(
+                "LLM returned empty choices list on final response",
+                extra={"model": settings_model},
+            )
+            return ""
+
+        final_message = final_response.choices[0].message
+        return getattr(final_message, "content", None) or ""
+    except IndexError as e:
+        logger.error(
+            "Index error in tool call loop — "
+            "likely empty LLM response",
+            extra={"error": str(e), "model": settings_model},
         )
+        return ""
 
-    final_response = await litellm.acompletion(
-        model=settings_model, messages=messages, temperature=0.1
+
+def _extract_json_from_response(text: str) -> list:
+    """Extract JSON array from LLM response text.
+
+    Handles three cases:
+    1. Pure JSON array: [...]
+    2. JSON embedded in markdown: ```json\n[...]\n```
+    3. JSON embedded in prose: "Here are the listings: [...]"
+
+    Args:
+        text: Raw LLM response text.
+
+    Returns:
+        Parsed list or empty list if extraction fails.
+    """
+    if not text or not text.strip():
+        return []
+
+    # Case 1: Try direct JSON parse first
+    try:
+        result = json.loads(text.strip())
+        if isinstance(result, list):
+            return result
+        if isinstance(result, dict) and 'listings' in result:
+            return result['listings']
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    # Case 2: Extract from markdown code blocks
+    import re
+    code_block = re.search(
+        r'```(?:json)?\s*(\[.*?\])\s*```',
+        text,
+        re.DOTALL
     )
-    return final_response.choices[0].message.content or ""
+    if code_block:
+        try:
+            result = json.loads(code_block.group(1))
+            if isinstance(result, list):
+                return result
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    # Case 3: Find first [ to last ] in the text
+    start = text.find('[')
+    end = text.rfind(']')
+    if start != -1 and end != -1 and end > start:
+        try:
+            result = json.loads(text[start:end + 1])
+            if isinstance(result, list):
+                return result
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    logger.warning(
+        "Could not extract JSON from sourcing response",
+        extra={"content_preview": text[:200]}
+    )
+    return []
 
 
 async def sourcing_node(state: AgentState) -> dict[str, Any]:
